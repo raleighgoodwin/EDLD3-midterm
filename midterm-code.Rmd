@@ -1,6 +1,6 @@
 ---
 title: "EDLD3-midterm"
-author: "Raleigh Goodwin"
+author: "Raleigh Goodwin, Vinita Vader, shijing Zhou"
 date: "4/21/2021"
 output: html_document
 ---
@@ -9,10 +9,62 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r, echo=FALSE, message=FALSE}
+library(glue)
+library(purrr)
+library(tidyverse)
+library(lubridate)
+library(janitor)
+```
+
 ## Part A: Data 
 ```{r}
-
+download_file <- function(year) {
+  link <- glue::glue("https://www.oregon.gov/ode/educator-resources/assessment/TestResults20{year}/pagr_schools_ela_raceethnicity_{year-1}{year}.xlsx")
+  rio::import(link, setclass = "tibble", na = c("-", "--", "*"))
+}
 ```
+
+## 1.
+```{r}
+data = map_df(15:18, download_file)
+#View(data)
+```
+
+Conduct some basic data cleaning to make your data file look like the following.
+```{r}
+clean.data = data %>% 
+  #Filter for only student groups coded as "White" or "Hispanic/Latino".
+     filter(`Student Group` %in% c("White", "Hispanic/Latino")) %>% 
+  #Select variables related to the number of students in each of the levels (1:4), and not percentages or collapsed levels.
+     dplyr::select(`Academic Year` ,`District`, `School`, `Student Group`, `Grade Level`,`Number Level 1` ,  `Number Level 2`,`Number Level 3`, `Number Level 4` ) %>% 
+     clean_names() %>% 
+ # mutate(n = map(data,nrow)) - doesn't work because var selection needed
+ pivot_longer(number_level_1:number_level_4, names_to = "level", values_to = "n") %>% 
+  #Remove any row that has missing data in any of the n variables
+  drop_na() %>% 
+  mutate(level = parse_number(level)) %>% 
+  mutate(level = as.character(level), 
+         n = as.integer(n))
+  
+clean.data
+```
+
+## 2. 
+
+```{r}
+
+ clean.data %>%  
+   group_by(district) %>% 
+  mutate(n_schools = length(unique(school))) %>% 
+  group_by(academic_year, district, student_group, level, n_schools) %>%
+  summarize(n = sum(n)) %>% pivot_wider(names_from = student_group, values_from = n) %>%
+  drop_na() %>%
+  arrange(district) %>% 
+   janitor::clean_names() %>% 
+   select(academic_year, district, n_schools,  everything())
+```
+
 
 ## Part B: Achievement gaps
 ```{r}
