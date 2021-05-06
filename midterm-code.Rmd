@@ -78,10 +78,16 @@ nested <- clean.data_2 %>%
   nest() 
 
 results_1 <- nested %>% 
-  mutate(gap = map(data, ~estimate_v(data, "white", "hispanic_latino")))
+  mutate(gap = map(data, ~estimate_v(data = .x, "white", "hispanic_latino")))
 
 results_2 <- clean.data_2 %>% 
   ungroup() %>% 
-  nest_by(district) 
+  nest_by(district) %>% 
+  summarize(gap = list(estimate_v(data, "white", "hispanic_latino")))
+```
+
+## 2. 
+```{r}
+
 ```
 
