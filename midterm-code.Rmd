@@ -3,10 +3,13 @@ title: "EDLD3-midterm"
 author: "Raleigh Goodwin, Vinita Vader, shijing Zhou"
 date: "4/21/2021"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(cache = TRUE)
 ```
 
 ```{r, echo=FALSE, message=FALSE}
@@ -15,9 +18,10 @@ library(purrr)
 library(tidyverse)
 library(lubridate)
 library(janitor)
+library(gapr)
 ```
 
-## Part A: Data 
+# Part A: Data 
 ```{r}
 download_file <- function(year) {
   link <- glue::glue("https://www.oregon.gov/ode/educator-resources/assessment/TestResults20{year}/pagr_schools_ela_raceethnicity_{year-1}{year}.xlsx")
@@ -53,8 +57,7 @@ clean.data
 ## 2. 
 
 ```{r}
-
- clean.data %>%  
+clean.data_2 <- clean.data %>%  
    group_by(district) %>% 
   mutate(n_schools = length(unique(school))) %>% 
   group_by(academic_year, district, student_group, level, n_schools) %>%
@@ -66,8 +69,19 @@ clean.data
 ```
 
 
-## Part B: Achievement gaps
-```{r}
+# Part B: Achievement gaps
 
+## 1.
+```{r}
+nested <- clean.data_2 %>% 
+  group_by(district, academic_year) %>% 
+  nest() 
+
+results_1 <- nested %>% 
+  mutate(gap = map(data, ~estimate_v(data, "white", "hispanic_latino")))
+
+results_2 <- clean.data_2 %>% 
+  ungroup() %>% 
+  nest_by(district) 
 ```
 
