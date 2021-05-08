@@ -80,37 +80,36 @@ nested <- clean.data_2 %>%
 results_1 <- nested %>% 
   mutate(gap = map(data, ~estimate_v(data = .x, "white", "hispanic_latino")))
 
-results_1 %>% 
+results_1 <- results_1 %>% 
   mutate(missing = map_lgl(gap, ~ nrow(.x)==0)) %>% 
-  filter(missing == TRUE)
+  filter(missing == FALSE)
 
 results_2 <- clean.data_2 %>% 
   ungroup() %>% 
   nest_by(district, academic_year) %>% 
   summarize(gap = list(estimate_v(data, "white", "hispanic_latino")))
 
-results_2 %>% 
+results_2 <- results_2 %>% 
   mutate(missing = map_lgl(gap, ~ nrow(.x)==0)) %>% 
-  filter(missing == TRUE)
+  filter(missing == FALSE)
 ```
 
 ## 2. 
 ```{r}
-plot <- left_join(results_1, results_2, by = "district") 
+plot <- left_join(results_1, results_2, by = c("district", "academic_year")) 
 
 plot <- plot %>% 
-  mutate(missing_1 = map_lgl(gap.x, ~ nrow(.x)==0),
-         missing_2 = map_lgl(gap.y, ~ nrow(.x)==0)) %>%
-  filter(missing_1 == FALSE & missing_2 == FALSE) %>% 
   mutate(v_1 = map_dbl(gap.x, "v"),
          v_2 = map_dbl(gap.y, "v"))
 
 plot %>% 
   ggplot(aes(x = v_1, y = v_2)) + 
-  geom_point() +
-  geom_line() +
+  geom_line(size = 1, 
+            color = "lightskyblue") +
+  geom_point(alpha = 0.3,
+             color = "azure4") +
   labs(x = "Method 1: map", 
        y = "Method 2: rowwise") +
-  theme_minimal()
+  theme_bw()
 ```
 
