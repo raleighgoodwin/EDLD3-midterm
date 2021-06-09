@@ -10,6 +10,8 @@ editor_options:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(cache = TRUE)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+
 ```
 
 ```{r, echo=FALSE, message=FALSE}
@@ -142,10 +144,6 @@ plot2n <- left_join(schoolnum, results_2)
 plot2n <- plot2n %>% 
   filter(district %in% dists)
 
-plot2n$district %>%
-  unique() %>%
-  length()
-
 plot2n <- plot2n %>% 
   mutate(v = map_dbl(gap, "v"),
          posneg = if_else(v < 0, "darkorchid2", "dodgerblue2")) %>% 
@@ -153,6 +151,8 @@ plot2n <- plot2n %>%
   mutate(mean_v = mean(v),
          se_v = sd(v/sqrt(n()))) %>% 
   ungroup()
+
+plot2n$district <- map_chr(plot2n$district, ~sub(" SD *.*[0-9]", "", .x)) # this isn't working quite right, and I'm not sure why. I'm trying to extract just the school district name, but it's not extracting everything after "SD" like I thought it would
 
 # trying with one district first
 plot2ntry <- plot2n[26:29,]
@@ -227,7 +227,7 @@ p2$plot[[8]]
 dir.create(here::here("plots"))
 
 file_names <- here::here("plots",
-                        paste0(p2$district, "_District_Gap_Plot.png"))
+                        paste0(p2$district, "_District_Gap_Plot.png")) # They save funky because I really want the `district` strings to be truncated, but I can't figure it out.
 
 invisible(mapply(ggsave, file = file_names, plot = p2$plot, device = "png"))
 ```
