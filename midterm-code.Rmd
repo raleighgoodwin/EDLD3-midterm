@@ -1,6 +1,6 @@
 ---
 title: "EDLD3-midterm"
-author: "Raleigh Goodwin, Vinita Vader, shijing Zhou"
+author: "Raleigh Goodwin, Vinita Vader, Shijing Zhou"
 date: "4/21/2021"
 output: html_document
 editor_options: 
@@ -219,7 +219,7 @@ p2 <- plot2n %>%
 
 p2$plot[[1]]
 p2$plot[[5]]
-p2$plot[[8]] # It works!!!!!!!!!
+p2$plot[[8]]
 ```
 
 ## 4.
