@@ -4,7 +4,7 @@ author: "Raleigh Goodwin, Vinita Vader, shijing Zhou"
 date: "4/21/2021"
 output: html_document
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
 ```{r setup, include=FALSE}
@@ -19,6 +19,8 @@ library(tidyverse)
 library(lubridate)
 library(janitor)
 library(gapr)
+library(ggtext)
+library(stringr)
 ```
 
 # Part A: Data 
@@ -66,6 +68,8 @@ clean.data_2 <- clean.data %>%
   arrange(district) %>% 
    janitor::clean_names() %>% 
    select(academic_year, district, n_schools,  everything())
+
+clean.data_2
 ```
 
 
@@ -110,6 +114,120 @@ plot %>%
              color = "azure4") +
   labs(x = "Method 1: map", 
        y = "Method 2: rowwise") +
+  scale_y_continuous(breaks = c(-1, 0, 1)) +
   theme_bw()
 ```
 
+## 3.
+```{r}
+dists <- unique(results_2$district)[1:100]
+
+needn <- clean.data_2 %>% 
+  group_by(district, academic_year) %>% 
+  nest()
+
+schoolnum <- as.data.frame(rep(NA, nrow(needn))) %>%
+  mutate(district = needn$district) %>% 
+  rename(nschool = `rep(NA, nrow(needn))`)
+
+for(i in 1:nrow(needn)){
+  schoolnum$nschool[i] <- needn$data[[i]]$n_schools
+}
+
+schoolnum <- schoolnum %>% 
+  distinct()
+
+plot2n <- left_join(schoolnum, results_2)
+
+plot2n <- plot2n %>% 
+  filter(district %in% dists)
+
+plot2n$district %>%
+  unique() %>%
+  length()
+
+plot2n <- plot2n %>% 
+  mutate(v = map_dbl(gap, "v"),
+         posneg = if_else(v < 0, "darkorchid2", "dodgerblue2")) %>% 
+  group_by(academic_year) %>% 
+  mutate(mean_v = mean(v),
+         se_v = sd(v/sqrt(n()))) %>% 
+  ungroup()
+
+# trying with one district first
+plot2ntry <- plot2n[26:29,]
+  
+plot2ntry %>% 
+  ggplot(aes(x = academic_year, y = v)) +
+  geom_line() +
+  geom_point(color = plot2ntry$posneg) +
+  geom_errorbar(aes(ymin = v + qnorm(0.025)*se_v,
+                    ymax = v + qnorm(0.975)*se_v),
+                width = .3,
+                size = .7) +
+  geom_hline(yintercept = 0, color = "red") +
+  labs(title = "Achievement Gap Estimates: ??? School District",
+       subtitle = "Negative values indicate
+       <span style='color:darkorchid2'>**White**</span> 
+       <span style='color:black'>students have higher average achievement</span> 
+       <br>
+       <span style='color:black'>Positive values indicate</span>
+       <span style='color:dodgerblue2'>**Hispanic/Latino**</span>
+       <span style='color:black'>students have higher average achievement</span>
+       </span>",
+       x = "School year",
+       y = "Average achievement difference (SD units)",
+       caption = "Note: District included ??? schools.") +
+  theme_bw() +
+  theme(legend.position = "none",
+        plot.subtitle = element_markdown())
+
+# generalize to 100
+
+p2 <- plot2n %>% 
+  group_by(district) %>% 
+  nest() %>% 
+  mutate(plot = map2(data, district, ~{
+  ggplot(.x, aes(x = academic_year, y = v, group = 1)) +
+  geom_line(color = "gray65",
+            size = .7) +
+  geom_errorbar(aes(ymin = v + qnorm(0.025)*se_v,
+                    ymax = v + qnorm(0.975)*se_v),
+                width = .3,
+                size = .8,
+                color = "gray65") +
+  geom_point(color = .x$posneg,
+             size = 2) +
+  geom_hline(yintercept = 0, color = "red") +
+  labs(title = glue("Achievement Gap Estimates: {.y} School District"),
+       subtitle = "Negative values indicate
+       <span style='color:darkorchid2'>**White**</span> 
+       <span style='color:black'>students have higher average achievement</span> 
+       <br>
+       <span style='color:black'>Positive values indicate</span>
+       <span style='color:dodgerblue2'>**Hispanic/Latino**</span>
+       <span style='color:black'>students have higher average achievement</span>
+       </span>",
+       x = "School year",
+       y = "Average achievement difference (SD units)",
+       caption = glue("Note: District included {.x$nschool} schools.")) +
+  theme_bw() +
+  theme(legend.position = "none",
+        plot.subtitle = element_markdown())
+  })
+)
+
+p2$plot[[1]]
+p2$plot[[5]]
+p2$plot[[8]] # It works!!!!!!!!!
+```
+
+## 4.
+```{r}
+dir.create(here::here("plots"))
+
+file_names <- here::here("plots",
+                        paste0(p2$district, "_District_Gap_Plot.png"))
+
+invisible(mapply(ggsave, file = file_names, plot = p2$plot, device = "png"))
+```
